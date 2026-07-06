@@ -111,6 +111,7 @@ public class Plugin implements Closeable
 	private static final Pattern PLUGIN_INTERNAL_NAME_TEST = Pattern.compile("^[a-z0-9-]+$");
 	private static final Pattern REPOSITORY_TEST = Pattern.compile("^(https://github\\.com/.*)\\.git$");
 	private static final Pattern COMMIT_TEST = Pattern.compile("^[a-fA-F0-9]{40}$");
+	private static final Pattern CORE_SOURCE_TEST = Pattern.compile("^readme|^license|^src/main/|runelite-plugin.properties|\\.gradle", Pattern.CASE_INSENSITIVE);
 
 	private static final String SUFFIX_JAR = ".jar";
 	private static final String SUFFIX_SOURCES = ".zip";
@@ -450,8 +451,8 @@ public class Plugin implements Closeable
 				public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException
 				{
 					String zipPath = repositoryDirectory.toPath().relativize(path).toString().replace('\\', '/');
-					(zipPath.contains(".gradle") || zipPath.startsWith("src/main/") || zipPath.equals("runelite-plugin.properties") ? core : extras)
-						.add(new Entry(path, zipPath, path.toFile().length()));
+					boolean required = CORE_SOURCE_TEST.matcher(zipPath).find();
+					(required ? core : extras).add(new Entry(path, zipPath, path.toFile().length()));
 					return FileVisitResult.CONTINUE;
 				}
 			});
