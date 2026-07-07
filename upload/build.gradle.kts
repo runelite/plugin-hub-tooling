@@ -22,30 +22,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-allprojects {
-	version "2.0-SNAPSHOT"
-	group "net.runelite.pluginhub"
-
-	tasks.withType(AbstractArchiveTask) {
-		preserveFileTimestamps = false
-		reproducibleFileOrder = true
-	}
+plugins {
+	java
 }
 
-subprojects {
-	apply plugin: "java"
+repositories {
+	mavenCentral()
+}
 
-	java {
-		sourceCompatibility = 11
-	}
+dependencies {
+	implementation(libs.findbugs.jsr305)
+	implementation(libs.guava)
+	implementation(libs.okhttp)
+	implementation(libs.gson)
 
-	task shadowJar(type: Jar) {
-		archiveFileName.set archiveBaseName.get() + "." + archiveExtension.get()
-		from {
-			configurations.runtimeClasspath.collect {
-				it.isDirectory() ? it : zipTree(it)
-			}
-		}
-		with tasks.jar
-	}
+	compileOnly(libs.lombok)
+	annotationProcessor(libs.lombok)
+	testCompileOnly(libs.lombok)
+	testAnnotationProcessor(libs.lombok)
+
+	testImplementation(libs.junit)
+	testImplementation(libs.okhttp.mockwebserver)
+}
+
+tasks.withType<JavaCompile>().configureEach {
+	options.release.set(11)
+}
+
+tasks.named<Test>("test") {
+	workingDir = File(project.rootDir, "../")
 }

@@ -26,7 +26,7 @@ import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.Verify
 
 plugins {
-	id("de.undercouch.download") version "5.7.0"
+	alias(libs.plugins.undercouch.download)
 }
 
 val distURL = "https://services.gradle.org/distributions/gradle-8.10-bin.zip"
@@ -45,9 +45,9 @@ val verifyGradle = tasks.create<Verify>("verifyGradle") {
 }
 
 val rtCopy = copySpec {
-	from(arrayOf(":apirecorder", ":package", ":upload").map {
+	from(provider { arrayOf(":apirecorder", ":package", ":upload").map {
 		project(it).tasks.getByName<Jar>("shadowJar").archiveFile
-	})
+	}})
 	from(file("src/main/resources"))
 	from(zipTree(wrapperZip)) {
 		eachFile {
@@ -59,7 +59,8 @@ val rtCopy = copySpec {
 var rtDeps = arrayOf(verifyGradle)
 
 var tar = tasks.create<Tar>("tar") {
-	archiveFileName = archiveBaseName.get() + "." + archiveExtension.get()
+	archiveFileName = "bundle.tar"
+	destinationDirectory = layout.buildDirectory.dir("distributions")
 
 	dependsOn(rtDeps)
 	with(rtCopy)
@@ -127,7 +128,7 @@ var preparer = tasks.create<Exec>("preparer") {
 	workingDir(rtDir)
 }
 
-val testRuntime = configurations.create("testRuntime") {
+val testRuntime by configurations.creating {
 	isCanBeConsumed = true
 	isCanBeResolved = false
 }
@@ -135,6 +136,6 @@ var rtArtifact = artifacts.add("testRuntime", rtDir) {
 	builtBy(testRTSync, preparer, rlVersion, testVerificationMetadata)
 }
 
-tasks.build {
+tasks.create("build") {
 	dependsOn(rtArtifact, tar)
 }

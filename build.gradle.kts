@@ -22,51 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-repositories {
-	maven {
-		url "https://repo.gradle.org/gradle/libs-releases-remote-cache/"
+allprojects {
+	version = "2.0-SNAPSHOT"
+	group = "net.runelite.pluginhub"
+}
+
+subprojects {
+	tasks.withType<AbstractArchiveTask> {
+		isPreserveFileTimestamps = false
+		isReproducibleFileOrder = true
 	}
-	mavenCentral()
-}
 
-configurations.create("testRuntime") {
-	canBeConsumed = false
-	canBeResolved = true
-}
-
-dependencies {
-	implementation "org.gradle:gradle-tooling-api:8.10"
-	implementation "org.slf4j:slf4j-simple:1.7.10"
-	implementation "com.google.code.findbugs:jsr305:3.0.2"
-	implementation "com.google.guava:guava:23.2-jre"
-	implementation "org.ow2.asm:asm:9.9.1"
-	implementation "com.squareup.okhttp3:okhttp:3.14.9"
-	implementation "com.google.code.gson:gson:2.8.5"
-	implementation project(":upload")
-	implementation project(":apirecorder")
-
-	def lombok = "org.projectlombok:lombok:1.18.30";
-	compileOnly lombok
-	annotationProcessor lombok
-	testCompileOnly lombok
-	testAnnotationProcessor lombok
-
-	testImplementation "junit:junit:4.12"
-	testImplementation "com.squareup.okhttp3:mockwebserver:3.14.9"
-
-	testRuntime project(path: ":bundle", configuration: "testRuntime")
-}
-
-jar {
-	manifest {
-		attributes "Main-Class": "net.runelite.pluginhub.packager.Packager"
+	plugins.withType<JavaPlugin> {
+		print(tasks);
+		tasks.register<Jar>("shadowJar") {
+			archiveFileName.set(provider { archiveBaseName.get() + "." + archiveExtension.get() })
+			from(project.provider {
+				configurations.getByName("runtimeClasspath").map {
+					if (it.isDirectory) it else zipTree(it)
+				}
+			})
+			with(tasks.getByName<Jar>("jar"))
+		}
 	}
-}
-
-test {
-	dependsOn configurations.testRuntime
-	workingDir configurations.testRuntime.singleFile
-	inputs.file(file("../create_new_plugin.py"))
-	inputs.dir(file("../templateplugin"))
-	systemProperty "pluginhub.test.createNewPlugin", file("../create_new_plugin.py")
 }

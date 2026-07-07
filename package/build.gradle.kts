@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Abex
+ * Copyright (c) 2021 Abex
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,26 +22,58 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+plugins {
+	java
+}
+
+tasks.withType<JavaCompile>().configureEach {
+	options.release.set(11)
+}
+
 repositories {
+	maven {
+		url = uri("https://repo.gradle.org/gradle/libs-releases-remote-cache/")
+	}
 	mavenCentral()
 }
 
-dependencies {
-	implementation "com.google.code.findbugs:jsr305:3.0.2"
-	implementation "com.google.guava:guava:23.2-jre"
-	implementation "com.squareup.okhttp3:okhttp:3.14.9"
-	implementation "com.google.code.gson:gson:2.8.5"
-
-	def lombok = "org.projectlombok:lombok:1.18.30";
-	compileOnly lombok
-	annotationProcessor lombok
-	testCompileOnly lombok
-	testAnnotationProcessor lombok
-
-	testImplementation "junit:junit:4.12"
-	testImplementation "com.squareup.okhttp3:mockwebserver:3.14.9"
+val testRuntime by configurations.creating {
+	isCanBeConsumed = false
+	isCanBeResolved = true
 }
 
-test {
-	workingDir new File(project.rootDir, "../")
+dependencies {
+	implementation(libs.gradle.tooling.api)
+	implementation(libs.slf4j.simple)
+	implementation(libs.findbugs.jsr305)
+	implementation(libs.guava)
+	implementation(libs.asm)
+	implementation(libs.okhttp)
+	implementation(libs.gson)
+	implementation(project(":upload"))
+	implementation(project(":apirecorder"))
+
+	compileOnly(libs.lombok)
+	annotationProcessor(libs.lombok)
+	testCompileOnly(libs.lombok)
+	testAnnotationProcessor(libs.lombok)
+
+	testImplementation(libs.junit)
+	testImplementation(libs.okhttp.mockwebserver)
+
+	testRuntime(project(path = ":bundle", configuration = "testRuntime"))
+}
+
+tasks.named<Jar>("jar") {
+	manifest {
+		attributes("Main-Class" to "net.runelite.pluginhub.packager.Packager")
+	}
+}
+
+tasks.named<Test>("test") {
+	dependsOn(testRuntime)
+	workingDir = testRuntime.singleFile
+	inputs.file(file("../create_new_plugin.py"))
+	inputs.dir(file("../templateplugin"))
+	systemProperty("pluginhub.test.createNewPlugin", file("../create_new_plugin.py"))
 }
