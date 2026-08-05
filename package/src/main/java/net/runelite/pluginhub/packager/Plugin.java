@@ -59,6 +59,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -206,21 +207,50 @@ public class Plugin implements Closeable
 				.withFile(pluginCommitDescriptor);
 		}
 
-		Properties cd = loadProperties(pluginCommitDescriptor);
+		var cd = new HashMap<String, String>();
+		for (var line : Files.readAllLines(pluginCommitDescriptor.toPath(), StandardCharsets.UTF_8))
+		{
+			if (line.trim().equals("") || line.startsWith("#"))
+			{
+				continue;
+			}
 
-		String disabled = cd.getProperty("disabled");
+			int idx = line.indexOf('=');
+			if (idx == -1)
+			{
+				throw PluginBuildException.of(internalName, "entry is not a valid key=value pair")
+					.withFileLine(pluginCommitDescriptor, line);
+			}
+
+			var key = line.substring(0, idx);
+			var value = line.substring(idx + 1);
+
+			if (!key.trim().equals(key) || !value.trim().equals(value))
+			{
+				throw PluginBuildException.of(internalName, "entry has surrounding whitespace")
+					.withFileLine(pluginCommitDescriptor, line);
+			}
+
+			if (cd.putIfAbsent(key, value) != null)
+			{
+				throw PluginBuildException.of(internalName, "duplicate key \"{}\"", key)
+					.withFileLine(pluginCommitDescriptor, line);
+			}
+		}
+
+		String disabled = cd.get("disabled");
 		if (!Strings.isNullOrEmpty(disabled))
 		{
 			throw new DisabledPluginException(internalName, disabled, false);
 		}
 
-		String unavailable = cd.getProperty("unavailable");
+		String unavailable = cd.get("unavailable");
 		if (!Strings.isNullOrEmpty(unavailable))
 		{
 			throw new DisabledPluginException(internalName, unavailable, true);
 		}
 
-		repositoryURL = (String) cd.remove("repository");
+		repositoryURL = cd.remove("repository");
 		if (repositoryURL == null)
 		{
 			throw PluginBuildException.of(internalName, "repository is missing from {}", pluginCommitDescriptor)
@@ -250,23 +280,23 @@ public class Plugin implements Closeable
 				});
 		}
 
-		commit = (String) cd.remove("commit");
+		commit = cd.remove("commit");
 		if (!COMMIT_TEST.matcher(commit).matches())
 		{
 			throw PluginBuildException.of(internalName, "commit must be a full 40 character sha1sum")
 				.withFileLine(pluginCommitDescriptor, "commit=" + commit);
 		}
 
-		String strSizeLimit = (String) cd.remove("jarSizeLimitMiB");
+		String strSizeLimit = cd.remove("jarSizeLimitMiB");
 		if (strSizeLimit != null)
 		{
 			jarSizeLimitMiB = Integer.parseInt(strSizeLimit);
 		}
 
-		warning = (String) cd.remove("warning");
+		warning = cd.remove("warning");
 		cd.remove("authors");
 
-		for (Map.Entry<Object, Object> extra : cd.entrySet())
+		for (Map.Entry<String, String> extra : cd.entrySet())
 		{
 			throw PluginBuildException.of(internalName, "unexpected key in commit descriptor")
 				.withFileLine(pluginCommitDescriptor, extra.getKey() + "=" + extra.getValue());
