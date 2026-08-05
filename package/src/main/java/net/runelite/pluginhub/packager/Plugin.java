@@ -112,7 +112,7 @@ public class Plugin implements Closeable
 	private static final Pattern PLUGIN_INTERNAL_NAME_TEST = Pattern.compile("^[a-z0-9-]+$");
 	private static final Pattern REPOSITORY_TEST = Pattern.compile("^(https://github\\.com/.*)\\.git$");
 	private static final Pattern COMMIT_TEST = Pattern.compile("^[a-fA-F0-9]{40}$");
-	private static final Pattern CORE_SOURCE_TEST = Pattern.compile("^readme|^license|^src/main/|runelite-plugin.properties|\\.gradle", Pattern.CASE_INSENSITIVE);
+	private static final Pattern CORE_SOURCE_TEST = Pattern.compile("^(\\.github/|docs/|)readme(\\..*)?$|^license|^src/main/|runelite-plugin.properties|\\.gradle", Pattern.CASE_INSENSITIVE);
 
 	private static final String SUFFIX_JAR = ".jar";
 	private static final String SUFFIX_SOURCES = ".zip";
