@@ -879,7 +879,7 @@ public class Plugin implements Closeable
 
 			{
 				String description = (String) rlPluginProperties.remove("description");
-				if (disallowedIsFatal && "An example greeter plugin".equals(description))
+				if (Strings.isNullOrEmpty(description) || (disallowedIsFatal && "An example greeter plugin".equals(description)))
 				{
 					throw PluginBuildException.of(this, "\"description\" must be set")
 						.withFile(propFile);
