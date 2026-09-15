@@ -810,6 +810,23 @@ public class Plugin implements Closeable
 								if ("Lnet/runelite/client/plugins/PluginDescriptor;".equals(descriptor) && extendsPlugin)
 								{
 									pluginClasses.add(name.replace('/', '.'));
+									return new AnnotationVisitor(Opcodes.ASM9)
+									{
+										@SneakyThrows
+										@Override
+										public void visit(String name, Object value)
+										{
+											if ("internalName".equals(name))
+											{
+												if (!value.equals(internalName))
+												{
+													throw PluginBuildException.of(Plugin.this, "PluginDescriptor.internalName must match the real internal name")
+														.withFile("src/main/java" + fileName.replace(".class", ".java"))
+														.withHelp("should be: internalName = \"" + internalName + "\"");
+												}
+											}
+										}
+									};
 								}
 
 								return null;
