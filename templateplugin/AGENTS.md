@@ -36,9 +36,9 @@
 
 ## File I/O
 
-- Only read/write files inside the `.runelite` directory. Create a subdirectory for your plugin (e.g. `.runelite/your-plugin-name/`) if you need to store data on disk.
-- Use `RuneLite.RUNELITE_DIR` to get the path.
-- Alternatively, use `JFileChooser` for user-initiated file operations.
+- All file i/o must go through the Filepath utility. Use of Filepath requires setting PluginDescriptor `internalName` to the internal name of the plugin.
+- Use `Filepath.Chooser` instead of `JFileChooser`
+- To migrate a legacy plugin data folder from .runelite automatically, set PluginDescriptor `legacyDataDirectory` to the name of the legacy folder.
 
 ## Config
 
