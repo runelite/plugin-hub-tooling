@@ -30,6 +30,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.pluginhub.uploader.Util;
 import org.junit.Assert;
@@ -134,6 +135,24 @@ public class PluginTest
 		{
 			log.info("ok: ", e);
 			assertContains(e.getHelpText(), "com.example.TestExamplePlugin");
+		}
+	}
+
+	@Test
+	public void testWrongInternalName() throws DisabledPluginException, PluginBuildException, IOException, InterruptedException
+	{
+		try (Plugin p = createExamplePlugin("correct-internal-name"))
+		{
+			editFile(
+				new File(p.repositoryDirectory, "src/main/java/com/example/TestExamplePlugin.java"),
+				s -> s.replace("@PluginDescriptor(", "@PluginDescriptor(internalName=\"wrong-internal-name\","));
+			p.build(Util.readRLVersion(), true);
+			Assert.fail();
+		}
+		catch (PluginBuildException e)
+		{
+			log.info("ok: ", e);
+			assertContains(e.getHelpText(), "correct-internal-name");
 		}
 	}
 
@@ -247,5 +266,12 @@ public class PluginTest
 		var props = Plugin.loadProperties(p.propFile);
 		props.setProperty(key, value);
 		writeProperties(props, p.propFile);
+	}
+
+	public void editFile(File file, Function<String, String> patch) throws IOException
+	{
+		var contents = Files.asCharSource(file, StandardCharsets.UTF_8).read();
+		contents = patch.apply(contents);
+		Files.asCharSink(file, StandardCharsets.UTF_8).write(contents);
 	}
 }
