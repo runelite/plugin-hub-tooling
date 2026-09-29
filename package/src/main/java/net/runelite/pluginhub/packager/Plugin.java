@@ -477,7 +477,7 @@ public class Plugin implements Closeable
 				@Override
 				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException
 				{
-					if (dir.toString().contains(".git"))
+					if (dir.endsWith(".git"))
 					{
 						return FileVisitResult.SKIP_SUBTREE;
 					}
