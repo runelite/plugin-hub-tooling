@@ -81,6 +81,7 @@ import java.util.zip.ZipOutputStream;
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.Value;
@@ -113,6 +114,12 @@ public class Plugin implements Closeable
 	private static final Pattern REPOSITORY_TEST = Pattern.compile("^(https://github\\.com/.*)\\.git$");
 	private static final Pattern COMMIT_TEST = Pattern.compile("^[a-fA-F0-9]{40}$");
 	private static final Pattern CORE_SOURCE_TEST = Pattern.compile("^(\\.github/|docs/|)readme(\\..*)?$|^license|^src/main/|runelite-plugin.properties|\\.gradle", Pattern.CASE_INSENSITIVE);
+
+	private static final List<String> STANDARD_BUILD_PATHS = List.of(
+		"src/main/java",
+		"src/main/resources",
+		"lombok.config"
+	);
 
 	private static final String SUFFIX_JAR = ".jar";
 	private static final String SUFFIX_SOURCES = ".zip";
@@ -512,11 +519,11 @@ public class Plugin implements Closeable
 			}
 		}
 
-		try (DirectoryStream<Path> ds = Files.newDirectoryStream(repositoryDirectory.toPath(), "**.{gradle,gradle.kts}"))
+		if (buildType == BuildType.GRADLE)
 		{
-			for (Path path : ds)
+			try (DirectoryStream<Path> ds = Files.newDirectoryStream(repositoryDirectory.toPath(), "**.{gradle,gradle.kts}"))
 			{
-				if (buildType == BuildType.GRADLE)
+				for (Path path : ds)
 				{
 					String badLine = MoreFiles.asCharSource(path, StandardCharsets.UTF_8)
 						.lines()
@@ -541,10 +548,6 @@ public class Plugin implements Closeable
 							.withFileLine(path.toFile(), badLine);
 					}
 				}
-				else
-				{
-					Files.delete(path);
-				}
 			}
 		}
 
@@ -568,28 +571,44 @@ public class Plugin implements Closeable
 			});
 		}
 
-		if (buildType != BuildType.GRADLE)
+		File projectDir;
+		if (buildType == BuildType.GRADLE)
 		{
+			projectDir = repositoryDirectory;
+		}
+		else
+		{
+			projectDir = new File(buildDirectory, "standard");
+			projectDir.mkdirs();
 			try (InputStream is = Plugin.class.getResourceAsStream("standard-build.gradle"))
 			{
-				Files.copy(is, new File(repositoryDirectory, "build.gradle").toPath(), StandardCopyOption.REPLACE_EXISTING);
+				Files.copy(is, new File(projectDir, "build.gradle").toPath(), StandardCopyOption.REPLACE_EXISTING);
 			}
 
 			try (InputStream is = Plugin.class.getResourceAsStream("standard-settings.gradle"))
 			{
-				Files.copy(is, new File(repositoryDirectory, "settings.gradle").toPath(), StandardCopyOption.REPLACE_EXISTING);
+				Files.copy(is, new File(projectDir, "settings.gradle").toPath(), StandardCopyOption.REPLACE_EXISTING);
+			}
+
+			for (var pathName : STANDARD_BUILD_PATHS)
+			{
+				var path = repositoryDirectory.toPath().resolve(pathName);
+				if (Files.exists(path))
+				{
+					Files.walkFileTree(path, new CopyVisitor(repositoryDirectory.toPath(), projectDir.toPath()));
+				}
 			}
 		}
 
 		try (InputStream is = new FileInputStream(new File(Util.PLUGIN_HUB_REPO, "package/verification-template/gradle/verification-metadata.xml")))
 		{
-			File metadataFile = new File(repositoryDirectory, "gradle/verification-metadata.xml");
+			File metadataFile = new File(projectDir, "gradle/verification-metadata.xml");
 			metadataFile.getParentFile().mkdir();
 			Files.copy(is, metadataFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
 
 		try (ProjectConnection con = GradleConnector.newConnector()
-			.forProjectDirectory(repositoryDirectory)
+			.forProjectDirectory(projectDir)
 			.useInstallation(Packager.GRADLE_HOME)
 			.connect())
 		{
@@ -1177,5 +1196,28 @@ public class Plugin implements Closeable
 			log.close();
 		}
 		MoreFiles.deleteRecursively(buildDirectory.toPath(), RecursiveDeleteOption.ALLOW_INSECURE);
+	}
+
+	@RequiredArgsConstructor
+	private static class CopyVisitor extends SimpleFileVisitor<Path>
+	{
+		private final Path from;
+		private final Path to;
+
+		@Override
+		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException
+		{
+			var target = to.resolve(from.relativize(dir));
+			Files.createDirectories(target);
+			return FileVisitResult.CONTINUE;
+		}
+
+		@Override
+		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
+		{
+			var target = to.resolve(from.relativize(file));
+			Files.copy(file, target);
+			return FileVisitResult.CONTINUE;
+		}
 	}
 }
