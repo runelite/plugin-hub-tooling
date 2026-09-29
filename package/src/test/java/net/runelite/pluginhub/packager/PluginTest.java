@@ -157,6 +157,24 @@ public class PluginTest
 	}
 
 	@Test
+	public void testClassResource() throws DisabledPluginException, PluginBuildException, IOException, InterruptedException
+	{
+		try (Plugin p = createExamplePlugin("example"))
+		{
+			var cf = new File(p.repositoryDirectory, "src/main/resources/some/package/Foo.class");
+			cf.getParentFile().mkdirs();
+			cf.createNewFile();
+			p.build(Util.readRLVersion(), true);
+			Assert.fail();
+		}
+		catch (PluginBuildException e)
+		{
+			log.info("ok: ", e);
+			assertContains(e.getMessage(), "class files may not be in resources");
+		}
+	}
+
+	@Test
 	public void testUnverifiedDependency() throws InterruptedException, DisabledPluginException, PluginBuildException, IOException
 	{
 		try (Plugin p = createExamplePlugin("unverified-dependency"))

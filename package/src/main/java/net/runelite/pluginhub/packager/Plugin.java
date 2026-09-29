@@ -548,6 +548,26 @@ public class Plugin implements Closeable
 			}
 		}
 
+		var resources = repositoryDirectory.toPath().resolve("src/main/resources");
+		if (Files.exists(resources))
+		{
+			Files.walkFileTree(resources, new SimpleFileVisitor<>()
+			{
+				@SneakyThrows
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
+				{
+					if (file.toString().endsWith(".class"))
+					{
+						throw PluginBuildException.of(Plugin.this, "class files may not be in resources")
+							.withFile(file.toFile());
+					}
+
+					return FileVisitResult.CONTINUE;
+				}
+			});
+		}
+
 		if (buildType != BuildType.GRADLE)
 		{
 			try (InputStream is = Plugin.class.getResourceAsStream("standard-build.gradle"))
