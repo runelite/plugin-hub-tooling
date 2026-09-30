@@ -109,6 +109,7 @@ public class Plugin implements Closeable
 {
 	private static final long MIB = 1024 * 1024;
 	private static final int MAX_SRC_SIZE_MIB = 10;
+	private static final String STUB_NAME = "runelite_plugin.json";
 
 	private static final Pattern PLUGIN_INTERNAL_NAME_TEST = Pattern.compile("^[a-z0-9-]+$");
 	private static final Pattern REPOSITORY_TEST = Pattern.compile("^(https://github\\.com/.*)\\.git$");
@@ -669,13 +670,18 @@ public class Plugin implements Closeable
 			{
 				for (ZipEntry ze; (ze = zis.getNextEntry()) != null; )
 				{
+					if (STUB_NAME.equals(ze.getName()))
+					{
+						throw PluginBuildException.of(this, "plugins cannot include a " + STUB_NAME);
+					}
+
 					zos.putNextEntry(ze);
 					ByteStreams.copy(zis, zos);
 					zos.closeEntry();
 				}
 
 				{
-					ZipEntry ze = new ZipEntry("runelite_plugin.json");
+					ZipEntry ze = new ZipEntry(STUB_NAME);
 					ze.setTime(0);
 					zos.putNextEntry(ze);
 					Writer w = new OutputStreamWriter(zos, StandardCharsets.UTF_8);

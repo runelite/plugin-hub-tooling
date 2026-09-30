@@ -175,6 +175,24 @@ public class PluginTest
 	}
 
 	@Test
+	public void testStubDuplicate() throws DisabledPluginException, PluginBuildException, IOException, InterruptedException
+	{
+		try (Plugin p = createExamplePlugin("example"))
+		{
+			var cf = new File(p.repositoryDirectory, "src/main/resources/runelite_plugin.json");
+			cf.getParentFile().mkdirs();
+			cf.createNewFile();
+			p.build(Util.readRLVersion(), true);
+			Assert.fail();
+		}
+		catch (PluginBuildException e)
+		{
+			log.info("ok: ", e);
+			assertContains(e.getMessage(), "runelite_plugin.json");
+		}
+	}
+
+	@Test
 	public void testUnverifiedDependency() throws InterruptedException, DisabledPluginException, PluginBuildException, IOException
 	{
 		try (Plugin p = createExamplePlugin("unverified-dependency"))
