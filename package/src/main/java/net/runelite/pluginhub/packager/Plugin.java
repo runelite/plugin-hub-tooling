@@ -411,6 +411,7 @@ public class Plugin implements Closeable
 	{
 		Process gitclone = new ProcessBuilder("git", "clone",
 			"--config", "advice.detachedHead=false",
+			"--config", "core.symlinks=false",
 			"--filter", "tree:0", "--no-checkout",
 			this.repositoryURL, repositoryDirectory.getAbsolutePath())
 			.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile))
