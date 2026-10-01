@@ -198,16 +198,31 @@ public class PluginTest
 		try (Plugin p = createExamplePlugin("unverified-dependency"))
 		{
 			setProp(p, "build", "gradle");
-			File buildFile = new File(p.repositoryDirectory, "build.gradle");
-			String buildSrc = Files.asCharSource(buildFile, StandardCharsets.UTF_8).read();
-			buildSrc = buildSrc.replace("dependencies {", "dependencies {\n" +
-				"	implementation 'org.apache.httpcomponents:httpclient:4.5.13'");
-			Files.asCharSink(buildFile, StandardCharsets.UTF_8).write(buildSrc);
+			editFile(new File(p.repositoryDirectory, "build.gradle"), b -> b.replace(
+				"dependencies {", "dependencies {\n" +
+					"	implementation 'org.apache.httpcomponents:httpclient:4.5.13'"));
 			p.build(Util.readRLVersion(), true);
 			Assert.fail();
 		}
 		catch (PluginBuildException e)
 		{
+			log.info("ok: ", e);
+		}
+	}
+
+	@Test
+	public void testManifest() throws InterruptedException, DisabledPluginException, PluginBuildException, IOException
+	{
+		try (Plugin p = createExamplePlugin("bad-manifest"))
+		{
+			setProp(p, "build", "gradle");
+			editFile(new File(p.repositoryDirectory, "build.gradle"), b -> b + "\ntasks.withType(Jar) { manifest { attributes('Class-Path': 'some.jar') } }");
+			p.build(Util.readRLVersion(), true);
+			Assert.fail();
+		}
+		catch (PluginBuildException e)
+		{
+			assertContains(e.getMessage(), "Class-Path");
 			log.info("ok: ", e);
 		}
 	}

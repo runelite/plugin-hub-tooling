@@ -69,8 +69,8 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -805,11 +805,22 @@ public class Plugin implements Closeable
 		{
 			ClassRecorder builtinApi = new ClassRecorder();
 
-			try (JarInputStream jis = new JarInputStream(new FileInputStream(jarFile)))
+			try (ZipInputStream jis = new ZipInputStream(new FileInputStream(jarFile)))
 			{
-				for (JarEntry je; (je = jis.getNextJarEntry()) != null; )
+				for (ZipEntry je; (je = jis.getNextEntry()) != null; )
 				{
 					String fileName = je.getName();
+					if ("META-INF/MANIFEST.MF".equalsIgnoreCase(fileName))
+					{
+						var manifest = new Manifest(jis);
+						if (manifest.getMainAttributes().getValue(Attributes.Name.CLASS_PATH) != null)
+						{
+							throw PluginBuildException.of(this, "plugins cannot specify Class-Path");
+						}
+
+						continue;
+					}
+
 					if (!fileName.endsWith(".class"))
 					{
 						continue;
