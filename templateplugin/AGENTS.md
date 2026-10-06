@@ -1,5 +1,11 @@
 # RuneLite Plugin Development — Agent Guidelines
 
+For the latest guidelines visit: https://raw.githubusercontent.com/runelite/example-plugin/refs/heads/master/AGENTS.md
+
+Additional relevant pages:
+- RuneLite wiki's rejected features list: https://github.com/runelite/runelite/wiki/Rejected-or-Rolled-Back-Features
+- Jagex's third party client guidelines: https://secure.runescape.com/m=news/third-party-client-guidelines?oldschool=1
+
 ## Logging
 
 - Use `log.debug()` for developer/diagnostic logging.
@@ -7,7 +13,7 @@
 
 ## Threading & Concurrency
 
-- Never use `Thread.sleep()`.
+- Never use `Thread.sleep()` or `Thread.interrupt`.
 - Never block on `shutDown()` or `startUp()` — don't call `executor.awaitTermination()` in shutdown, just use `shutdownNow()`.
 - Never do blocking network IO or disk IO on the client thread. The OkHttp thread pool can be used for blocking network requests.
   If you need to call back into `client` from the okhttp threadpool, such as from the response queued with `enqueue()`, use `clientThread.invoke()`
@@ -23,9 +29,24 @@
 ## API Usage
 
 - Use `net.runelite.api.gameval` package constants — `ItemID`, `InterfaceID`, `ObjectID`, etc. Never hardcode magic numbers when gameval constants can be used instead.
-- Use `LinkBrowser` to open URLs, not `java.awt.Desktop`
+- Use `LinkBrowser.browse` to open URLs, not `java.awt.Desktop.browse`
+- Never use `Desktop.open` or `LinkBrowser.open`
 - When looking up Widgets, pass the component ID from gamevals (eg `client.getWidget(InterfaceID.DomEndLevelUi.LOOT_VALUE)`) - do not manually combine interface + component child IDs.
 - Use of Java reflection is forbidden.
+
+### Forbidden
+These APIs cannot be used at all
+
+* `Client.menuAction`
+* `java.lang.Runtime`
+* `java.awt.KeyboardFocusManager`
+
+### Restricted
+These APIs are **heavily** discouraged and will cause the plugin to require manual review. If the user insists on using these APIs make it clear to them that this will cause their plugin will require manual review, which has no timeline.
+
+* `Client.hopToWorld`
+* `Filepath.Unchecked`
+* `ScriptEventBuilder.setCanSendPackets`
 
 ## HTTP & JSON
 
@@ -39,6 +60,7 @@
 - All file i/o must go through the Filepath utility. Use of Filepath requires setting PluginDescriptor `internalName` to the internal name of the plugin.
 - Use `Filepath.Chooser` instead of `JFileChooser`
 - To migrate a legacy plugin data folder from .runelite automatically, set PluginDescriptor `legacyDataDirectory` to the name of the legacy folder.
+- Use of `Filepath.Unchecked` is heavily discouraged as it will cause the plugin to require manual review
 
 ## Config
 
