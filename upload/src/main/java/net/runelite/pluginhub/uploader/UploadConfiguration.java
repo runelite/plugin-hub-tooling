@@ -34,6 +34,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.util.Base64;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
@@ -43,6 +44,7 @@ import okhttp3.Response;
 import okio.BufferedSource;
 
 @Getter
+@Setter
 @Accessors(chain = true)
 public class UploadConfiguration implements Closeable
 {
@@ -93,15 +95,20 @@ public class UploadConfiguration implements Closeable
 
 	public UploadConfiguration setClient(String credentials)
 	{
-		String repoAuth = "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+		String repoAuth = credentials == null ? null : "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
 		client = new OkHttpClient.Builder()
 			.addInterceptor(chain ->
 			{
-				Request userAgentRequest = chain.request()
+				var rb =  chain.request()
 					.newBuilder()
-					.header("User-Agent", "RuneLite-PluginHub-Package/2")
-					.header("Authorization", repoAuth)
-					.build();
+					.header("User-Agent", "RuneLite-PluginHub-Package/2");
+
+				if (repoAuth != null)
+				{
+					rb = rb.header("Authorization", repoAuth);
+				}
+
+				Request userAgentRequest = rb.build();
 
 				Response res = null;
 				for (int attempts = 0; attempts < MAX_RETRY; attempts++)
