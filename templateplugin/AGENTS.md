@@ -1,5 +1,11 @@
 # RuneLite Plugin Development — Agent Guidelines
 
+AT THE START OF EACH SESSION, compare this file with the latest guidelines and follow the latest version if they differ:
+
+```
+curl -fsSL https://raw.githubusercontent.com/runelite/example-plugin/refs/heads/master/AGENTS.md | diff - AGENTS.md
+```
+
 ## Logging
 
 - Use `log.debug()` for developer/diagnostic logging.
