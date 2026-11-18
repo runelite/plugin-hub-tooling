@@ -44,6 +44,7 @@ dependencies {
 	runelite group: 'net.runelite', name: 'client', version: runeLiteVersion
 	runelite group: 'net.runelite', name: 'jshell', version: runeLiteVersion
 	runelite "org.projectlombok:lombok:1.18.30"
+	runelite "org.jetbrains:annotations:23.0.0"
 }
 
 def apiFilePath = file("../api/${runeLiteVersion}.api")

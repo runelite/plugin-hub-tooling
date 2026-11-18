@@ -14,6 +14,7 @@ repositories {
 }
 
 dependencies {
+	// any dep here should be included in the preparer dependencies to warm the cache
 	compileOnly "net.runelite:client"
 
 	compileOnly 'org.projectlombok:lombok:1.18.30'
